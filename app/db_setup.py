@@ -16,5 +16,16 @@ cursor.execute('''
     )
 ''')
 
+cursor.execute('''
+    CREATE TABLE IF NOT EXISTS notifications (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            status TEXT NOT NULL,
+            amout TEXT NOT NULL,
+            hash TEXT NOT NULL,
+            content TEXT NOT NULL,
+            date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+''')
+
 conn.commit()
 conn.close()

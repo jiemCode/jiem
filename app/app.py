@@ -3,6 +3,7 @@ import os
 from datetime import datetime
 
 from flask import Flask, request
+from flask_cors import CORS
 from flask_httpauth import HTTPTokenAuth
 from dotenv import load_dotenv
 
@@ -12,6 +13,7 @@ import settings
 app = Flask(__name__)
 auth = HTTPTokenAuth(scheme="Bearer")
 
+CORS(app)
 
 load_dotenv()
 
@@ -30,11 +32,13 @@ def index():
 @auth.login_required
 def msg_handler():
     if request.method == "POST":
-        print(f"Request: {request.headers}")
-        username = request.form["firstname"]
-        email = request.form["email"]
-        message = request.form["message"]
-        date = datetime.now()
+        print(request.is_json)
+        data = request.json
+        username = data.get("firstame", "")
+        email = data.get("email", "")
+        message = data.get("message", "")
+
+        print(f"F: {username} - E: {email} - M: {message}")
         
         conn = sqlite3.connect(settings.DB)
         cursor = conn.cursor()
@@ -62,6 +66,40 @@ def message():
         return {"messages": message_list}
 
 
+@app.route("/cpuam/notifications/get", methods=["POST"])
+def get_notifications():
+    if request.method == "POST":
+        data = request.json
+
+        status = request.POST['data']['status']
+        amount = request.POST['data']['invoice']['total_amount']
+        hash = request.POST['data']['hash']
+        content = request.POST['data']
+        
+        
+        conn = sqlite3.connect(settings.DB)
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT INTO notifications (status, amount, hash, content)
+            VALUES (?, ?, ?, ?)
+        ''', (status, amount, hash, content))
+        conn.commit()
+        conn.close()
+
+        return "Saved"
+
+
+@app.route("/cpuam/notifications", methods=["POST"])
+def list_notifications():
+    if request.method == "GET":
+        conn = sqlite3.connect(settings.DB)
+        cursor = conn.cursor()
+        cursor.execute('SELECT username, email, message, date FROM messages')
+        messages = cursor.fetchall()
+        conn.close()
+
+        message_list = [{"username": msg[0], "email": msg[1], "message": msg[2], "date": msg[3]} for msg in messages]
+        return {"messages": message_list}
 
 
 if __name__ == "__main__":
